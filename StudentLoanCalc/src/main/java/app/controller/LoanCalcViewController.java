@@ -7,59 +7,91 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import pkgLogic.Loan;
 import pkgLogic.Payment;
 
 import java.net.URL;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.ResourceBundle;
 import javafx.fxml.Initializable;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.scene.Group;
+import javafx.scene.Scene;
 import javafx.scene.control.DatePicker;
 
-public class LoanCalcViewController implements Initializable   {
+public class LoanCalcViewController implements Initializable {
 
 	private StudentCalc SC = null;
-	
+
 	@FXML
 	private TextField LoanAmount;
-	
+
 	@FXML
 	private TextField InterestRate;
-	
+
 	@FXML
 	private TextField NbrOfYears;
-	
+
+	@FXML
+	private TextField AddPMT;
+
 	@FXML
 	private DatePicker PaymentStartDate;
-	
+
 	@FXML
 	private Label lblTotalPayemnts;
 
-	
+	@FXML
+	private Label lblTotalInterest;
+
 	@FXML
 	private TableView<Payment> tvResults;
-	
+
 	@FXML
 	private TableColumn<Payment, Integer> colPaymentNumber;
-	
-	
-	private ObservableList<Payment> paymentList = FXCollections.observableArrayList();
-	
-	//TODO: Account for all the other columns		
+
+	@FXML
+	private TableColumn<Payment, Double> colInterest;
+
+	@FXML
+	private TableColumn<Payment, Double> colPrinciple;
+
+	@FXML
+	private TableColumn<Payment, Double> colBalance;
+
+	@FXML
+	private TableColumn<Payment, Double> colPMT;
+
+	@FXML
+	private TableColumn<Payment, Double> colAddPMT;
+
+	@FXML
+	private TableColumn<Payment, Calendar> colDueDate;
+
+	private ObservableList<Payment> paymentList = FXCollections.observableArrayList();;
+
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		colPaymentNumber.setCellValueFactory(new PropertyValueFactory<>("paymentNbr"));
-		//TODO: Add a 'setCellValueFactor' entry for each column, mapping to each attribute in Payment
-		
-		tvResults.setItems(paymentList);
+
+		colPaymentNumber.setCellValueFactory(new PropertyValueFactory<>("PaymentNbr"));
+		colInterest.setCellValueFactory(new PropertyValueFactory<>("Interest"));
+		colPrinciple.setCellValueFactory(new PropertyValueFactory<>("Principle"));
+		colBalance.setCellValueFactory(new PropertyValueFactory<>("Balance"));
+		colPMT.setCellValueFactory(new PropertyValueFactory<>("PMT"));
+		colAddPMT.setCellValueFactory(new PropertyValueFactory<>("AddPMT"));
+		colDueDate.setCellValueFactory(new PropertyValueFactory<>("DueDate"));
+
 	}
 
 	public void setMainApp(StudentCalc sc) {
 		this.SC = sc;
 	}
-	
+
 	/**
 	 * btnCalcLoan - Fire this event when the button clicks
 	 * 
@@ -69,26 +101,30 @@ public class LoanCalcViewController implements Initializable   {
 	@FXML
 	private void btnCalcLoan(ActionEvent event) {
 
-		//	Examples- how to read data from the form
-		double dLoanAmount = Double.parseDouble(LoanAmount.getText());		
-		lblTotalPayemnts.setText("123");		
+		tvResults.getItems().clear();
+		lblTotalPayemnts.setText("");
+		lblTotalInterest.setText("");
+
+		double dLoanAmount = Double.parseDouble(LoanAmount.getText());
+		double dAddPMT = Double.parseDouble(AddPMT.getText());
+		double dInterestRate = Double.parseDouble(InterestRate.getText());
+		int iTerm = Integer.parseInt(NbrOfYears.getText());
 		LocalDate localDate = PaymentStartDate.getValue();
-		
-		/*
-		 * When this button is clicked, you need to do the following:
-		 * 
-		 * 1) Clear the table
-		 * 2) Clear the results fields (Total Payments, Total Interest)
-		 * 3) You're going to create 'n' payments based on the data you give.  You'll calculate and
-		 * 		carry forward 'balance', because you're going to have to hand calculate that month's
-		 * 		interest.
-		 * Payment# - you'll set this, counting from 1 to N
-		 * Due Date - based on the given date.  method .plusMonths(1) will calculate date + 1 month.
-		 * Payment  - Calculate based on PMT function (which is your minimum payment)
-		 * Additional Payment - based on Additional Payment given by user
-		 * Interest - Calculate based on 
-		 */
-		
+
+		tvResults.getColumns().setAll(colPaymentNumber, colDueDate, colPMT, colAddPMT, colInterest, colPrinciple,
+				colBalance);
+
+		Loan loan = new Loan(dInterestRate, iTerm, localDate, dAddPMT, dLoanAmount);
+		loan.setPayments(loan.autoPayments());
+
+		lblTotalPayemnts.setText(Integer.toString(loan.getPayments().size()));
+		lblTotalInterest.setText(Double.toString(loan.totalInterest(loan.getPayments())));
+
+		paymentList = FXCollections.observableArrayList(loan.getPayments());
+
+		tvResults.setItems(paymentList);
+
 	}
-	
+
 }
+
